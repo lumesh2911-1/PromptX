@@ -12,6 +12,7 @@ import {
 } from "@/features/conversation/actions/conversation-actions";
 import { queryKeys } from "../utils/query-keys";
 
+
 // Get All Conversations
 export function useConversations() {
   return useQuery({
@@ -40,7 +41,7 @@ export function useCreateConversation() {
 }
 
 // Update the Conversation
-export function useupdateConversation() {
+export function useUpdateConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -79,7 +80,7 @@ export function useDeleteConversation(activeId: string) {
         queryKey: queryKeys.conversations.all,
       });
       queryClient.removeQueries({
-        queryKey: queryKeys.message.byConversation(id),
+        queryKey: queryKeys.messages.byConversation(id),
       });
 
       if (activeId === id) {
