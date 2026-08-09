@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  MoonIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PinIcon,
   PinOffIcon,
   PlusIcon,
+  SunIcon,
   Trash2Icon,
 } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { useUser, UserButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,10 +57,9 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { data: conversations, isLoading } = useConversations();
 
-  
-// Get the active conversation id from the pathname (e.g. /c/123)
-// pathname.split("/")[2] is the third part of the pathname (the conversation id)
-//  firstparam = / , secondparam = c , thirdparam = 123
+  // Get the active conversation id from the pathname (e.g. /c/123)
+  // pathname.split("/")[2] is the third part of the pathname (the conversation id)
+  //  firstparam = / , secondparam = c , thirdparam = 123
   const activeId = pathname.startsWith("/c/")
     ? pathname.split("/")[2]
     : undefined;
@@ -73,9 +75,11 @@ export function AppSidebar() {
               render={<Link href="/" />}
             >
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground">
-                C
+                P
               </span>
-              <span>PromptX</span>
+              <span className="group-data-[collapsible=icon]:hidden">
+                PromptX
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -160,9 +164,9 @@ function ChatItem({
   isActive: boolean;
 }) {
   const updateConversation = useUpdateConversation();
-  
+
   const deleteConversation = useDeleteConversation(
-    isActive ? conversation.id : undefined
+    isActive ? conversation.id : undefined,
   );
 
   /** Prompts the user to rename the conversation and persists the new title. */
@@ -228,32 +232,52 @@ function ChatItem({
 /** Footer menu with theme toggle and Clerk user account button. */
 function SidebarFooterMenu() {
   const { resolvedTheme, setTheme } = useTheme();
+  const { user } = useUser();
+  const [mounted, setMounted] = useState(false);
+
+  const name = user?.fullName || user?.username || "Account";
+
+  // Avoid hydration mismatch: `resolvedTheme` is only known on the client,
+  // so do not branch on it until after the component has mounted.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        >
-          Toggle theme
-        </Button>
-      </SidebarMenuItem>
-      <SidebarMenuItem>
-        <div className="flex items-center gap-2 px-1 py-1.5">
+        <div className="flex min-w-0 w-full items-center gap-2 px-1 py-1.5">
           <UserButton
             appearance={{
               elements: {
-                avatarBox: "size-8",
+                avatarBox: "size-12 shrink-0",
               },
             }}
           />
-          <span className="truncate text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
-            Account
+          <span className="flex min-w-0 flex-1 flex-col justify-center group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-xs font-medium leading-5 text-foreground">
+              {name}
+            </span>
+            {user?.primaryEmailAddress?.emailAddress ? (
+              <span className="truncate text-xs leading-4 text-muted-foreground">
+                {user.primaryEmailAddress.emailAddress}
+              </span>
+            ) : null}
           </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 self-center border border-border group-data-[collapsible=icon]:hidden"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+          >
+            {mounted && resolvedTheme === "dark" ? (
+              <SunIcon className="size-4" />
+            ) : mounted ? (
+              <MoonIcon className="size-4" />
+            ) : null}
+          </Button>
         </div>
       </SidebarMenuItem>
     </SidebarMenu>
