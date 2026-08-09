@@ -1,0 +1,95 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import {
+  createConversation,
+  deleteConversation,
+  updateConversation,
+  listConversations,
+} from "@/features/conversation/actions/conversation-actions";
+import { queryKeys } from "../utils/query-keys";
+
+// Get All Conversations
+export function useConversations() {
+  return useQuery({
+    queryKey: queryKeys.conversations.all,
+    queryFn: () => listConversations(),
+  });
+}
+
+// Create New Conversation
+export function useCreateConversation() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (title?: string) => createConversation(title),
+    onSuccess: (conversation) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.all,
+      });
+      router.push(`/c/${conversation.id}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Could note create chat");
+    },
+  });
+}
+
+// Update the Conversation
+export function useupdateConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string;
+      title?: string;
+      isPinned?: boolean;
+      isArchived?: boolean;
+    }) => updateConversation(id, data),
+    onSuccess: (conversation) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.all,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.detail(conversation.id),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Could not update chat");
+    },
+  });
+}
+
+// Delete the Conversation
+export function useDeleteConversation(activeId: string) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteConversation(id),
+    onSuccess: ({ id }) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.all,
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.message.byConversation(id),
+      });
+
+      if (activeId === id) {
+        router.push("/");
+      }
+
+      toast.success("Chat deleted.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Could not delete chat");
+    },
+  });
+}
