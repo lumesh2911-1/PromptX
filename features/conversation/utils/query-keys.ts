@@ -4,7 +4,7 @@ export const queryKeys ={
         detail:(id: string) => ["conversations", id ] as const,
 
     },
-    message:{
+    messages:{
         byConversation:(conversationId: string)=>
         ["messages", conversationId] as const,
     }
